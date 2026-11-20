@@ -91,7 +91,7 @@ pm2 save
 pm2 startup
 ```
 
-للنشر خلف Nginx استخدم المنفذ `3000` كـ reverse proxy وأضف شهادة HTTPS.
+للنشر خلف Nginx استخدم المنفذ المحدد في متغير `PORT` كـ reverse proxy وأضف شهادة HTTPS.
 
 ## إعداد Render
 
@@ -104,7 +104,7 @@ CORS_ORIGINS=*
 API_KEY=<قيمة عشوائية سرية بطول 32 محرفاً على الأقل>
 ```
 
-اترك `PORT` دون إعداد؛ Render يمرره تلقائياً. بعد نجاح النشر اختبر `https://<service>.onrender.com/health`.
+اترك `PORT` دون إعداد؛ Render يمرره تلقائياً، والخادم يستمع على `0.0.0.0`. بعد نجاح النشر اختبر `https://<service>.onrender.com/health`، وينبغي أن يعيد JSON بحالة 200.
 
 يتطلب كل طلب إلى `/api/v1` ترويسة `x-api-key`. عند بناء Flutter، استخدم نفس المفتاح وعنوان الخدمة:
 

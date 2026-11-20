@@ -2,8 +2,8 @@ import { app } from './app.js';
 import { env } from './config/env.js';
 import { closeDatabase, pool } from './config/database.js';
 
-const server = app.listen(env.port, () => {
-  console.log(`Caffee API listening on port ${env.port}`);
+const server = app.listen(env.port, '0.0.0.0', () => {
+  console.log(`Caffee API listening on 0.0.0.0:${env.port}`);
 });
 
 async function shutdown(signal) {
