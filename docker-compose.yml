@@ -21,6 +21,7 @@ services:
       PORT: 3000
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/caffee
       CORS_ORIGINS: http://localhost:8080
+      API_KEY: ${API_KEY:?Set API_KEY in .env}
     ports:
       - "3000:3000"
 

@@ -3,6 +3,7 @@ import categoriesRouter from './categories.routes.js';
 import itemsRouter from './items.routes.js';
 import tablesRouter from './tables.routes.js';
 import billsRouter from './bills.routes.js';
+import menuRouter from './menu.routes.js';
 
 export const apiRouter = Router();
 
@@ -10,6 +11,7 @@ apiRouter.use('/categories', categoriesRouter);
 apiRouter.use('/items', itemsRouter);
 apiRouter.use('/tables', tablesRouter);
 apiRouter.use('/bills', billsRouter);
+apiRouter.use('/menu', menuRouter);
 
 apiRouter.get('/dashboard', async (req, res, next) => {
   try {

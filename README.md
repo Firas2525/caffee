@@ -92,3 +92,24 @@ pm2 startup
 ```
 
 للنشر خلف Nginx استخدم المنفذ `3000` كـ reverse proxy وأضف شهادة HTTPS.
+
+## إعداد Render
+
+أنشئ Web Service من مستودع `Firas2525/caffee` على الفرع `main`، واجعل Root Directory فارغاً لأن المستودع مخصص للباك إند. اترك Render يستخدم Dockerfile، ثم أضف متغيرات البيئة التالية من صفحة الخدمة:
+
+```text
+NODE_ENV=production
+DATABASE_URL=<رابط Neon الجديد بعد تدوير كلمة المرور>
+CORS_ORIGINS=*
+API_KEY=<قيمة عشوائية سرية بطول 32 محرفاً على الأقل>
+```
+
+اترك `PORT` دون إعداد؛ Render يمرره تلقائياً. بعد نجاح النشر اختبر `https://<service>.onrender.com/health`.
+
+يتطلب كل طلب إلى `/api/v1` ترويسة `x-api-key`. عند بناء Flutter، استخدم نفس المفتاح وعنوان الخدمة:
+
+```bash
+flutter build apk --dart-define=CAFE_API_BASE_URL=https://<service>.onrender.com/api/v1 --dart-define=CAFE_API_KEY=<نفس-المفتاح>
+```
+
+قيمة المفتاح المضمّنة في تطبيق Flutter يمكن استخراجها من التطبيق؛ لذلك فهي حاجز أولي لتطبيق خاص وليست بديلاً عن حسابات مستخدمين وصلاحيات منفصلة في تطبيق عام.
