@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { pool } from '../config/database.js';
 import { seedMenu } from '../database/defaultData.js';
+import { requireAdmin } from '../middleware/authenticate.js';
 
 const router = Router();
 
-router.post('/reset', async (req, res, next) => {
+router.post('/reset', requireAdmin, async (req, res, next) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');

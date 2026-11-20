@@ -7,6 +7,17 @@ CREATE TABLE IF NOT EXISTS categories (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  username TEXT NOT NULL UNIQUE,
+  display_name TEXT NOT NULL,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'staff' CHECK (role IN ('admin', 'staff')),
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS items (
   id TEXT PRIMARY KEY,
   category_id TEXT NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
@@ -53,8 +64,15 @@ CREATE TABLE IF NOT EXISTS bills (
   total NUMERIC(12, 2) NOT NULL CHECK (total >= 0),
   opened_at TIMESTAMPTZ NOT NULL,
   closed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  payment_method TEXT NOT NULL DEFAULT 'نقدًا'
+  payment_method TEXT NOT NULL DEFAULT 'نقدًا',
+  created_by_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  created_by_name TEXT NOT NULL DEFAULT 'غير معروف'
 );
+
+ALTER TABLE bills
+  ADD COLUMN IF NOT EXISTS created_by_user_id TEXT REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE bills
+  ADD COLUMN IF NOT EXISTS created_by_name TEXT NOT NULL DEFAULT 'غير معروف';
 
 CREATE TABLE IF NOT EXISTS bill_items (
   id TEXT PRIMARY KEY,

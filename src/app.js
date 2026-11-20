@@ -5,7 +5,6 @@ import morgan from 'morgan';
 import { env } from './config/env.js';
 import { apiRouter } from './routes/index.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
-import { requireApiKey } from './middleware/requireApiKey.js';
 
 export const app = express();
 
@@ -26,6 +25,6 @@ app.get('/health', (req, res) => {
   res.json({ success: true, data: { status: 'ok' } });
 });
 
-app.use('/api/v1', requireApiKey, apiRouter);
+app.use('/api/v1', apiRouter);
 app.use(notFound);
 app.use(errorHandler);

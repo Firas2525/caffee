@@ -1,11 +1,28 @@
 import { Router } from 'express';
 import { query } from '../config/database.js';
+import { env } from '../config/env.js';
+import { requireAdmin } from '../middleware/authenticate.js';
+import { validate } from '../middleware/validate.js';
+import { z } from 'zod';
 
 const router = Router();
+const billsQuerySchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+});
 
-router.get('/', async (req, res, next) => {
+router.get('/', validate(billsQuerySchema, 'query'), async (req, res, next) => {
   try {
-    const bills = await query('SELECT * FROM bills ORDER BY closed_at DESC');
+    let bills;
+    if (typeof req.query.date === 'string') {
+      bills = await query(
+        `SELECT * FROM bills
+         WHERE (closed_at AT TIME ZONE $1)::date = $2::date
+         ORDER BY closed_at DESC`,
+        [env.appTimezone, req.query.date],
+      );
+    } else {
+      bills = await query('SELECT * FROM bills ORDER BY closed_at DESC');
+    }
     const billIds = bills.rows.map((bill) => bill.id);
     const items = billIds.length
       ? await query('SELECT * FROM bill_items WHERE bill_id = ANY($1::text[])', [billIds])
@@ -27,7 +44,7 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-router.delete('/', async (req, res, next) => {
+router.delete('/', requireAdmin, async (req, res, next) => {
   try {
     await query('DELETE FROM bills');
     res.json({ success: true, data: { deleted: true } });
@@ -47,6 +64,7 @@ function mapBill(row, items) {
     openedAt: row.opened_at,
     closedAt: row.closed_at,
     paymentMethod: row.payment_method,
+    createdByName: row.created_by_name,
     items,
   };
 }

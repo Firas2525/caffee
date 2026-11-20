@@ -4,6 +4,7 @@ import { query } from '../config/database.js';
 import { validate } from '../middleware/validate.js';
 import { httpError } from '../utils/httpError.js';
 import { newId } from '../utils/id.js';
+import { requireAdmin } from '../middleware/authenticate.js';
 
 const router = Router();
 
@@ -26,7 +27,7 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-router.post('/', validate(itemSchema), async (req, res, next) => {
+router.post('/', requireAdmin, validate(itemSchema), async (req, res, next) => {
   try {
     const body = req.body;
     const id = body.id || newId('item');
@@ -43,7 +44,7 @@ router.post('/', validate(itemSchema), async (req, res, next) => {
   }
 });
 
-router.put('/:id', validate(itemSchema), async (req, res, next) => {
+router.put('/:id', requireAdmin, validate(itemSchema), async (req, res, next) => {
   try {
     const body = req.body;
     const result = await query(
@@ -60,7 +61,7 @@ router.put('/:id', validate(itemSchema), async (req, res, next) => {
   }
 });
 
-router.delete('/:id', async (req, res, next) => {
+router.delete('/:id', requireAdmin, async (req, res, next) => {
   try {
     const result = await query('DELETE FROM items WHERE id = $1 RETURNING id', [req.params.id]);
     if (!result.rows.length) return next(httpError(404, 'ITEM_NOT_FOUND', 'Item not found'));

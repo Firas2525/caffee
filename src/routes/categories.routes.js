@@ -4,6 +4,7 @@ import { query } from '../config/database.js';
 import { validate } from '../middleware/validate.js';
 import { httpError } from '../utils/httpError.js';
 import { newId } from '../utils/id.js';
+import { requireAdmin } from '../middleware/authenticate.js';
 
 const router = Router();
 
@@ -23,7 +24,7 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-router.post('/', validate(categorySchema), async (req, res, next) => {
+router.post('/', requireAdmin, validate(categorySchema), async (req, res, next) => {
   try {
     const body = req.body;
     const id = body.id || newId('cat');
@@ -41,7 +42,7 @@ router.post('/', validate(categorySchema), async (req, res, next) => {
   }
 });
 
-router.put('/:id', validate(categorySchema), async (req, res, next) => {
+router.put('/:id', requireAdmin, validate(categorySchema), async (req, res, next) => {
   try {
     const result = await query(
       `UPDATE categories SET name = $2, icon = $3, color_hex = $4, updated_at = NOW()
@@ -55,7 +56,7 @@ router.put('/:id', validate(categorySchema), async (req, res, next) => {
   }
 });
 
-router.delete('/:id', async (req, res, next) => {
+router.delete('/:id', requireAdmin, async (req, res, next) => {
   try {
     const result = await query('DELETE FROM categories WHERE id = $1 RETURNING id', [req.params.id]);
     if (!result.rows.length) return next(httpError(404, 'CATEGORY_NOT_FOUND', 'Category not found'));

@@ -18,6 +18,8 @@ npm run setup
 npm run dev
 ```
 
+قبل التشغيل، اضبط `DATABASE_URL` و`JWT_SECRET` في `.env`. عند أول تشغيل، ينشئ الخادم حساب المدير تلقائياً إذا لم يكن هناك أي مستخدمين في قاعدة البيانات؛ اضبط `ADMIN_USERNAME` و`ADMIN_PASSWORD` و`ADMIN_NAME` أولاً. يجب أن تتكون كلمة مرور المدير من 12 محرفاً على الأقل. لا تُرفع ملفات `.env` إلى GitHub.
+
 الخادم يعمل افتراضياً على `http://localhost:3000`.
 فحص الصحة:
 
@@ -40,6 +42,10 @@ docker compose exec api npm run setup
 | الطريقة | المسار | الوظيفة |
 |---|---|---|
 | GET | `/health` | فحص عمل الخادم |
+| POST | `/api/v1/auth/login` | تسجيل الدخول وإصدار رمز جلسة |
+| GET | `/api/v1/auth/me` | بيانات المستخدم الحالي |
+| GET/POST | `/api/v1/auth/users` | عرض حسابات الموظفين أو إنشاء حساب |
+| PATCH | `/api/v1/auth/users/:id/status` | تفعيل أو إيقاف حساب موظف |
 | GET/POST | `/api/v1/categories` | عرض أو إنشاء تصنيف |
 | PUT/DELETE | `/api/v1/categories/:id` | تعديل أو حذف تصنيف |
 | GET/POST | `/api/v1/items` | عرض أو إنشاء منتج |
@@ -50,9 +56,12 @@ docker compose exec api npm run setup
 | POST | `/api/v1/tables/:id/orders` | إضافة منتج للطلب |
 | PUT/DELETE | `/api/v1/tables/:id/orders/:orderId` | تعديل أو حذف صنف من الطلب |
 | POST | `/api/v1/tables/:id/close` | إغلاق الطاولة وإنشاء فاتورة |
-| GET | `/api/v1/bills` | عرض سجل الفواتير |
+| GET | `/api/v1/bills?date=YYYY-MM-DD` | عرض فواتير يوم محدد |
 | DELETE | `/api/v1/bills` | مسح سجل الفواتير |
+| GET | `/api/v1/reports/daily?date=YYYY-MM-DD` | إحصائيات اليوم حسب توقيت دمشق |
 | GET | `/api/v1/dashboard` | إحصائيات لوحة التحكم |
+
+تتطلب جميع مسارات `/api/v1` رمز دخول في ترويسة `Authorization: Bearer <token>` باستثناء تسجيل الدخول. يستطيع المدير إدارة القائمة والطاولات وحسابات الموظفين، بينما يستطيع الموظف إدارة الطاولات والطلبات وإصدار الفواتير. تُسجل الفاتورة باسم المستخدم الذي أغلق الطاولة. ينتهي رمز الجلسة بعد 12 ساعة، ويُعطّل فور إيقاف الحساب.
 
 مثال إضافة صنف إلى طاولة:
 
@@ -101,15 +110,19 @@ pm2 startup
 NODE_ENV=production
 DATABASE_URL=<رابط Neon الجديد بعد تدوير كلمة المرور>
 CORS_ORIGINS=*
-API_KEY=<قيمة عشوائية سرية بطول 32 محرفاً على الأقل>
+JWT_SECRET=<سر عشوائي لا يقل عن 32 محرفاً>
+ADMIN_USERNAME=<اسم مستخدم المدير الأول>
+ADMIN_PASSWORD=<كلمة مرور أولية من 12 محرفاً على الأقل>
+ADMIN_NAME=مدير المقهى
+APP_TIMEZONE=Asia/Damascus
 ```
 
-اترك `PORT` دون إعداد؛ Render يمرره تلقائياً، والخادم يستمع على `0.0.0.0`. بعد نجاح النشر اختبر `https://<service>.onrender.com/health`، وينبغي أن يعيد JSON بحالة 200.
+اترك `PORT` دون إعداد؛ Render يمرره تلقائياً، والخادم يستمع على `0.0.0.0`. يطبّق الخادم ترحيل قاعدة البيانات ويُنشئ المدير الأول عند بدء التشغيل. بعد نجاح النشر اختبر `https://<service>.onrender.com/health`، وينبغي أن يعيد JSON بحالة 200.
 
-يتطلب كل طلب إلى `/api/v1` ترويسة `x-api-key`. عند بناء Flutter، استخدم نفس المفتاح وعنوان الخدمة:
+بعد تدوير كلمة مرور قاعدة البيانات التي سبق مشاركتها، ضع الرابط الجديد في `DATABASE_URL` داخل إعدادات Render فقط. عند بناء Flutter، اضبط عنوان الخدمة:
 
 ```bash
-flutter build apk --dart-define=CAFE_API_BASE_URL=https://<service>.onrender.com/api/v1 --dart-define=CAFE_API_KEY=<نفس-المفتاح>
+flutter build apk --dart-define=CAFE_API_BASE_URL=https://<service>.onrender.com/api/v1
 ```
 
-قيمة المفتاح المضمّنة في تطبيق Flutter يمكن استخراجها من التطبيق؛ لذلك فهي حاجز أولي لتطبيق خاص وليست بديلاً عن حسابات مستخدمين وصلاحيات منفصلة في تطبيق عام.
+من الأفضل تغيير كلمة مرور المدير الأول بعد تسليم بيانات الدخول، وعدم تضمين كلمات المرور أو أسرار قاعدة البيانات في التطبيق أو المستودع.

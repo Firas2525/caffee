@@ -4,6 +4,7 @@ import { pool, query } from '../config/database.js';
 import { validate } from '../middleware/validate.js';
 import { httpError } from '../utils/httpError.js';
 import { newId } from '../utils/id.js';
+import { requireAdmin } from '../middleware/authenticate.js';
 
 const router = Router();
 
@@ -54,7 +55,7 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-router.post('/', validate(tableSchema), async (req, res, next) => {
+router.post('/', requireAdmin, validate(tableSchema), async (req, res, next) => {
   try {
     const body = req.body;
     const id = body.id || newId('table');
@@ -70,7 +71,7 @@ router.post('/', validate(tableSchema), async (req, res, next) => {
   }
 });
 
-router.put('/:id', validate(tableSchema), async (req, res, next) => {
+router.put('/:id', requireAdmin, validate(tableSchema), async (req, res, next) => {
   try {
     const body = req.body;
     const result = await query(
@@ -85,7 +86,7 @@ router.put('/:id', validate(tableSchema), async (req, res, next) => {
   }
 });
 
-router.delete('/:id', async (req, res, next) => {
+router.delete('/:id', requireAdmin, async (req, res, next) => {
   try {
     const result = await query(
       'DELETE FROM cafe_tables WHERE id = $1 AND is_occupied = FALSE RETURNING id',
@@ -215,9 +216,21 @@ router.post('/:id/close', validate(closeSchema), async (req, res, next) => {
 
     await client.query(
       `INSERT INTO bills
-       (id, table_number, table_name, subtotal, discount, total, opened_at, closed_at, payment_method)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8)`,
-      [billId, table.table_number, table.table_name, subtotal, req.body.discount, total, openedAt, req.body.paymentMethod],
+       (id, table_number, table_name, subtotal, discount, total, opened_at, closed_at,
+        payment_method, created_by_user_id, created_by_name)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8, $9, $10)`,
+      [
+        billId,
+        table.table_number,
+        table.table_name,
+        subtotal,
+        req.body.discount,
+        total,
+        openedAt,
+        req.body.paymentMethod,
+        req.user.id,
+        req.user.displayName,
+      ],
     );
 
     for (const order of ordersResult.rows) {
