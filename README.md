@@ -44,6 +44,7 @@ docker compose exec api npm run setup
 | GET | `/health` | فحص عمل الخادم |
 | POST | `/api/v1/auth/login` | تسجيل الدخول وإصدار رمز جلسة |
 | GET | `/api/v1/auth/me` | بيانات المستخدم الحالي |
+| POST | `/api/v1/uploads/item-image` | رفع صورة صنف (للمدير، multipart/form-data) |
 | GET/POST | `/api/v1/auth/users` | عرض حسابات الموظفين أو إنشاء حساب |
 | PATCH | `/api/v1/auth/users/:id/status` | تفعيل أو إيقاف حساب موظف |
 | GET/POST | `/api/v1/categories` | عرض أو إنشاء تصنيف |
@@ -115,6 +116,9 @@ ADMIN_USERNAME=<اسم مستخدم المدير الأول>
 ADMIN_PASSWORD=<كلمة مرور أولية من 12 محرفاً على الأقل>
 ADMIN_NAME=مدير المقهى
 APP_TIMEZONE=Asia/Damascus
+CLOUDINARY_CLOUD_NAME=<اسم Cloudinary>
+CLOUDINARY_API_KEY=<مفتاح Cloudinary>
+CLOUDINARY_API_SECRET=<سر Cloudinary محفوظ في Render فقط>
 ```
 
 اترك `PORT` دون إعداد؛ Render يمرره تلقائياً، والخادم يستمع على `0.0.0.0`. يطبّق الخادم ترحيل قاعدة البيانات ويُنشئ المدير الأول عند بدء التشغيل. بعد نجاح النشر اختبر `https://<service>.onrender.com/health`، وينبغي أن يعيد JSON بحالة 200.

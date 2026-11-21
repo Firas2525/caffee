@@ -10,8 +10,12 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, callback) => {
-    if (!/^image\/(jpeg|png|webp)$/.test(file.mimetype)) {
-      callback(httpError(400, 'INVALID_IMAGE', 'نوع الصورة غير مدعوم'));
+    if (!/^image\/(jpeg|png|webp|heic|heif|avif|gif|bmp|tiff)$/.test(file.mimetype)) {
+      callback(httpError(
+        400,
+        'INVALID_IMAGE',
+        `نوع الصورة غير مدعوم: ${file.mimetype || 'غير معروف'}`,
+      ));
       return;
     }
     callback(null, true);
