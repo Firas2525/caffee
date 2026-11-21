@@ -26,11 +26,6 @@ export async function initializeDatabase() {
       `DELETE FROM categories
        WHERE id IN ('cat_hot', 'cat_cold', 'cat_shisha', 'cat_desserts')`,
     );
-    await client.query(
-      `DELETE FROM cafe_tables
-       WHERE id ~ '^table_[1-9][0-9]*$'`,
-    );
-
     const userCount = await client.query('SELECT COUNT(*)::int AS count FROM users');
     if (userCount.rows[0].count === 0) {
       if (!env.adminUsername || env.adminPassword.length < 12) {

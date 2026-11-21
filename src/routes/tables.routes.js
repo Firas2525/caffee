@@ -21,6 +21,23 @@ const orderSchema = z.object({
   notes: z.string().trim().max(500).default(''),
 });
 
+const batchAddOrdersSchema = z.object({
+  orders: z.array(orderSchema).min(1).max(100).refine(
+    (orders) => new Set(orders.map((order) => order.itemId)).size === orders.length,
+    'Each item may only appear once',
+  ),
+});
+
+const batchUpdateOrdersSchema = z.object({
+  orders: z.array(z.object({
+    itemId: z.string().trim().min(1),
+    quantity: z.coerce.number().int().nonnegative(),
+  })).min(1).max(100).refine(
+    (orders) => new Set(orders.map((order) => order.itemId)).size === orders.length,
+    'Each item may only appear once',
+  ),
+});
+
 const quantitySchema = z.object({
   quantity: z.coerce.number().int().positive(),
 });
@@ -189,6 +206,107 @@ router.post('/:id/orders', validate(orderSchema), async (req, res, next) => {
     );
     await client.query('COMMIT');
     res.status(existing.rows.length ? 200 : 201).json({ success: true, data: mapOrder(order) });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    next(error);
+  } finally {
+    client.release();
+  }
+});
+
+router.post('/:id/orders/batch', validate(batchAddOrdersSchema), async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const tableResult = await client.query(
+      'SELECT * FROM cafe_tables WHERE id = $1 FOR UPDATE',
+      [req.params.id],
+    );
+    if (!tableResult.rows.length) throw httpError(404, 'TABLE_NOT_FOUND', 'Table not found');
+
+    const itemIds = req.body.orders.map((order) => order.itemId);
+    const itemResult = await client.query(
+      'SELECT * FROM items WHERE id = ANY($1::text[]) AND is_available = TRUE',
+      [itemIds],
+    );
+    const itemsById = new Map(itemResult.rows.map((item) => [item.id, item]));
+    if (itemsById.size !== itemIds.length) {
+      throw httpError(404, 'ITEM_NOT_FOUND', 'One or more items are unavailable');
+    }
+
+    const orders = [];
+    for (const requested of req.body.orders) {
+      const item = itemsById.get(requested.itemId);
+      const result = await client.query(
+        `INSERT INTO table_orders
+         (id, table_id, item_id, item_name, unit_price, quantity, icon, notes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         ON CONFLICT (table_id, item_id) DO UPDATE
+         SET quantity = table_orders.quantity + EXCLUDED.quantity,
+             notes = EXCLUDED.notes,
+             updated_at = NOW()
+         RETURNING *`,
+        [
+          newId('order'),
+          req.params.id,
+          item.id,
+          item.name,
+          item.price,
+          requested.quantity,
+          item.icon,
+          requested.notes,
+        ],
+      );
+      orders.push(mapOrder(result.rows[0]));
+    }
+
+    await client.query(
+      `UPDATE cafe_tables SET is_occupied = TRUE,
+       opened_at = COALESCE(opened_at, NOW()), updated_at = NOW()
+       WHERE id = $1`,
+      [req.params.id],
+    );
+    await client.query('COMMIT');
+    res.status(201).json({ success: true, data: orders });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    next(error);
+  } finally {
+    client.release();
+  }
+});
+
+router.put('/:id/orders/batch', validate(batchUpdateOrdersSchema), async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const tableResult = await client.query(
+      'SELECT id FROM cafe_tables WHERE id = $1 FOR UPDATE',
+      [req.params.id],
+    );
+    if (!tableResult.rows.length) throw httpError(404, 'TABLE_NOT_FOUND', 'Table not found');
+
+    const orders = [];
+    for (const requested of req.body.orders) {
+      if (requested.quantity === 0) {
+        await client.query(
+          'DELETE FROM table_orders WHERE table_id = $1 AND item_id = $2',
+          [req.params.id, requested.itemId],
+        );
+        continue;
+      }
+
+      const result = await client.query(
+        `UPDATE table_orders SET quantity = $3, updated_at = NOW()
+         WHERE table_id = $1 AND item_id = $2 RETURNING *`,
+        [req.params.id, requested.itemId, requested.quantity],
+      );
+      if (!result.rows.length) throw httpError(404, 'ORDER_NOT_FOUND', 'Order not found');
+      orders.push(mapOrder(result.rows[0]));
+    }
+
+    await client.query('COMMIT');
+    res.json({ success: true, data: orders });
   } catch (error) {
     await client.query('ROLLBACK');
     next(error);
