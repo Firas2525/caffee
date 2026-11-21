@@ -20,7 +20,7 @@ export function errorHandler(error, req, res, next) {
     error: {
       code,
       message: status >= 500
-        ? `Internal server error${code !== 'INTERNAL_ERROR' ? ` (${code})` : ''}`
+        ? `Internal server error${code !== 'INTERNAL_ERROR' ? ` (${code}: ${error.message ?? 'unknown'})` : `: ${error.message ?? 'unknown'}`}`
         : error.message,
     },
   });
