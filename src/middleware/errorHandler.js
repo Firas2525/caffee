@@ -19,7 +19,9 @@ export function errorHandler(error, req, res, next) {
     success: false,
     error: {
       code,
-      message: status >= 500 ? 'Internal server error' : error.message,
+      message: status >= 500
+        ? `Internal server error${code !== 'INTERNAL_ERROR' ? ` (${code})` : ''}`
+        : error.message,
     },
   });
 }
