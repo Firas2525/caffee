@@ -65,12 +65,9 @@ function mapBill(row, items) {
     id: row.id,
     tableNumber: row.table_number,
     tableName: row.table_name,
-    subtotal: Number(row.subtotal),
-    discount: Number(row.discount),
     total: Number(row.total),
     openedAt: row.opened_at,
     closedAt: row.closed_at,
-    paymentMethod: row.payment_method,
     createdByName: row.created_by_name,
     items,
   };

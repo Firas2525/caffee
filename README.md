@@ -77,12 +77,8 @@ POST /api/v1/tables/table_1/orders
 
 مثال إغلاق طاولة:
 
-```json
+```http
 POST /api/v1/tables/table_1/close
-{
-  "discount": 0,
-  "paymentMethod": "نقدًا"
-}
 ```
 
 ## رفعه إلى السيرفر

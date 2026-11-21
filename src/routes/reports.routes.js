@@ -16,7 +16,6 @@ router.get('/daily', validate(reportQuerySchema, 'query'), async (req, res, next
       `SELECT
          COUNT(*)::int AS bills_count,
          COALESCE(SUM(total), 0)::float AS total_sales,
-         COALESCE(SUM(discount), 0)::float AS discounts_total,
          COALESCE(AVG(total), 0)::float AS average_bill,
          COALESCE(MAX(total), 0)::float AS largest_bill
        FROM bills

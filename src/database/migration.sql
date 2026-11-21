@@ -64,11 +64,9 @@ CREATE TABLE IF NOT EXISTS bills (
   table_number INTEGER NOT NULL,
   table_name TEXT NOT NULL,
   subtotal NUMERIC(12, 2) NOT NULL CHECK (subtotal >= 0),
-  discount NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (discount >= 0),
   total NUMERIC(12, 2) NOT NULL CHECK (total >= 0),
   opened_at TIMESTAMPTZ NOT NULL,
   closed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  payment_method TEXT NOT NULL DEFAULT 'نقدًا',
   created_by_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
   created_by_name TEXT NOT NULL DEFAULT 'غير معروف'
 );

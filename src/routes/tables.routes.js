@@ -42,10 +42,7 @@ const quantitySchema = z.object({
   quantity: z.coerce.number().int().positive(),
 });
 
-const closeSchema = z.object({
-  discount: z.coerce.number().nonnegative().default(0),
-  paymentMethod: z.string().trim().min(1).max(50).default('نقدًا'),
-});
+const closeSchema = z.object({});
 
 router.get('/', async (req, res, next) => {
   try {
@@ -380,24 +377,20 @@ router.post('/:id/close', validate(closeSchema), async (req, res, next) => {
       (sum, order) => sum + Number(order.unit_price) * order.quantity,
       0,
     );
-    const total = Math.max(0, subtotal - req.body.discount);
     const billId = newId('bill');
     const openedAt = table.opened_at ?? new Date();
 
     await client.query(
       `INSERT INTO bills
-       (id, table_number, table_name, subtotal, discount, total, opened_at, closed_at,
-        payment_method, created_by_user_id, created_by_name)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8, $9, $10)`,
+       (id, table_number, table_name, subtotal, total, opened_at, closed_at,
+        created_by_user_id, created_by_name)
+       VALUES ($1, $2, $3, $4, $4, $5, NOW(), $6, $7)`,
       [
         billId,
         table.table_number,
         table.table_name,
         subtotal,
-        req.body.discount,
-        total,
         openedAt,
-        req.body.paymentMethod,
         req.user.id,
         req.user.displayName,
       ],
@@ -460,12 +453,9 @@ function mapBill(row, items) {
     id: row.id,
     tableNumber: row.table_number,
     tableName: row.table_name,
-    subtotal: Number(row.subtotal),
-    discount: Number(row.discount),
     total: Number(row.total),
     openedAt: row.opened_at,
     closedAt: row.closed_at,
-    paymentMethod: row.payment_method,
     createdByName: row.created_by_name,
     items: items.map(mapOrder),
   };
