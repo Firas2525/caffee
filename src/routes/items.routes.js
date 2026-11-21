@@ -14,6 +14,7 @@ const itemSchema = z.object({
   name: z.string().trim().min(1).max(100),
   price: z.coerce.number().nonnegative(),
   icon: z.string().trim().max(20).default('🍽️'),
+  imageUrl: z.string().url().nullable().optional(),
   description: z.string().trim().max(500).default(''),
   isAvailable: z.boolean().default(true),
 });
@@ -32,9 +33,9 @@ router.post('/', requireAdmin, validate(itemSchema), async (req, res, next) => {
     const body = req.body;
     const id = body.id || newId('item');
     const result = await query(
-      `INSERT INTO items (id, category_id, name, price, icon, description, is_available)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [id, body.categoryId, body.name, body.price, body.icon, body.description, body.isAvailable],
+      `INSERT INTO items (id, category_id, name, price, icon, image_url, description, is_available)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [id, body.categoryId, body.name, body.price, body.icon, body.imageUrl ?? null, body.description, body.isAvailable],
     );
     res.status(201).json({ success: true, data: mapItem(result.rows[0]) });
   } catch (error) {
@@ -49,9 +50,9 @@ router.put('/:id', requireAdmin, validate(itemSchema), async (req, res, next) =>
     const body = req.body;
     const result = await query(
       `UPDATE items SET category_id = $2, name = $3, price = $4, icon = $5,
-       description = $6, is_available = $7, updated_at = NOW()
+       image_url = $6, description = $7, is_available = $8, updated_at = NOW()
        WHERE id = $1 RETURNING *`,
-      [req.params.id, body.categoryId, body.name, body.price, body.icon, body.description, body.isAvailable],
+      [req.params.id, body.categoryId, body.name, body.price, body.icon, body.imageUrl ?? null, body.description, body.isAvailable],
     );
     if (!result.rows.length) return next(httpError(404, 'ITEM_NOT_FOUND', 'Item not found'));
     res.json({ success: true, data: mapItem(result.rows[0]) });
@@ -78,6 +79,7 @@ function mapItem(row) {
     name: row.name,
     price: Number(row.price),
     icon: row.icon,
+    imageUrl: row.image_url,
     description: row.description,
     isAvailable: row.is_available,
   };

@@ -11,6 +11,9 @@ const schema = z.object({
   ADMIN_PASSWORD: z.string().default(''),
   ADMIN_NAME: z.string().trim().min(1).max(100).default('مدير المقهى'),
   APP_TIMEZONE: z.string().default('Asia/Damascus'),
+  CLOUDINARY_CLOUD_NAME: z.string().trim().default(''),
+  CLOUDINARY_API_KEY: z.string().trim().default(''),
+  CLOUDINARY_API_SECRET: z.string().trim().default(''),
 });
 
 const parsed = schema.safeParse(process.env);
@@ -41,6 +44,9 @@ export const env = {
   adminPassword: parsed.data.ADMIN_PASSWORD,
   adminName: parsed.data.ADMIN_NAME,
   appTimezone: parsed.data.APP_TIMEZONE,
+  cloudinaryCloudName: parsed.data.CLOUDINARY_CLOUD_NAME,
+  cloudinaryApiKey: parsed.data.CLOUDINARY_API_KEY,
+  cloudinaryApiSecret: parsed.data.CLOUDINARY_API_SECRET,
   corsOrigins: parsed.data.CORS_ORIGINS
     .split(',')
     .map((origin) => origin.trim())

@@ -24,11 +24,15 @@ CREATE TABLE IF NOT EXISTS items (
   name TEXT NOT NULL,
   price NUMERIC(12, 2) NOT NULL CHECK (price >= 0),
   icon TEXT NOT NULL DEFAULT '🍽️',
+  image_url TEXT,
   description TEXT NOT NULL DEFAULT '',
   is_available BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE items
+  ADD COLUMN IF NOT EXISTS image_url TEXT;
 
 CREATE TABLE IF NOT EXISTS cafe_tables (
   id TEXT PRIMARY KEY,

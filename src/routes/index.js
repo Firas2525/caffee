@@ -5,6 +5,7 @@ import tablesRouter from './tables.routes.js';
 import billsRouter from './bills.routes.js';
 import authRouter from './auth.routes.js';
 import reportsRouter from './reports.routes.js';
+import uploadsRouter from './uploads.routes.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { env } from '../config/env.js';
 import { query } from '../config/database.js';
@@ -18,6 +19,7 @@ apiRouter.use('/items', itemsRouter);
 apiRouter.use('/tables', tablesRouter);
 apiRouter.use('/bills', billsRouter);
 apiRouter.use('/reports', reportsRouter);
+apiRouter.use('/uploads', uploadsRouter);
 
 apiRouter.get('/dashboard', async (req, res, next) => {
   try {
