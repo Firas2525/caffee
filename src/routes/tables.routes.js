@@ -73,44 +73,75 @@ router.post('/', requireAdmin, validate(tableSchema), async (req, res, next) => 
 });
 
 router.put('/:id', requireAdmin, validate(tableSchema), async (req, res, next) => {
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
     const body = req.body;
-    const result = await query(
+    const lockResult = await client.query(
+      'SELECT id FROM cafe_tables WHERE id = $1 FOR UPDATE',
+      [req.params.id],
+    );
+    if (!lockResult.rows.length) throw httpError(404, 'TABLE_NOT_FOUND', 'Table not found');
+    const result = await client.query(
       `UPDATE cafe_tables SET table_number = $2, table_name = $3, notes = $4, updated_at = NOW()
        WHERE id = $1 RETURNING *`,
       [req.params.id, body.tableNumber, body.tableName, body.notes],
     );
-    if (!result.rows.length) return next(httpError(404, 'TABLE_NOT_FOUND', 'Table not found'));
+    await client.query('COMMIT');
     res.json({ success: true, data: result.rows[0] });
   } catch (error) {
+    await client.query('ROLLBACK');
     next(error);
+  } finally {
+    client.release();
   }
 });
 
 router.delete('/:id', requireAdmin, async (req, res, next) => {
+  const client = await pool.connect();
   try {
-    const result = await query(
-      'DELETE FROM cafe_tables WHERE id = $1 AND is_occupied = FALSE RETURNING id',
+    await client.query('BEGIN');
+    const lockResult = await client.query(
+      'SELECT id FROM cafe_tables WHERE id = $1 AND is_occupied = FALSE FOR UPDATE',
       [req.params.id],
     );
-    if (!result.rows.length) return next(httpError(409, 'TABLE_OCCUPIED', 'Only available tables can be deleted'));
+    if (!lockResult.rows.length) {
+      const tableResult = await client.query('SELECT id FROM cafe_tables WHERE id = $1', [req.params.id]);
+      if (!tableResult.rows.length) throw httpError(404, 'TABLE_NOT_FOUND', 'Table not found');
+      throw httpError(409, 'TABLE_OCCUPIED', 'Only available tables can be deleted');
+    }
+    const result = await client.query('DELETE FROM cafe_tables WHERE id = $1 RETURNING id', [req.params.id]);
+    await client.query('COMMIT');
     res.json({ success: true, data: { id: req.params.id } });
   } catch (error) {
+    await client.query('ROLLBACK');
     next(error);
+  } finally {
+    client.release();
   }
 });
 
 router.post('/:id/open', async (req, res, next) => {
+  const client = await pool.connect();
   try {
-    const result = await query(
+    await client.query('BEGIN');
+    const lockResult = await client.query(
+      'SELECT * FROM cafe_tables WHERE id = $1 FOR UPDATE',
+      [req.params.id],
+    );
+    if (!lockResult.rows.length) throw httpError(404, 'TABLE_NOT_FOUND', 'Table not found');
+    const result = await client.query(
       `UPDATE cafe_tables SET is_occupied = TRUE, opened_at = NOW(), updated_at = NOW()
        WHERE id = $1 RETURNING *`,
       [req.params.id],
     );
-    if (!result.rows.length) return next(httpError(404, 'TABLE_NOT_FOUND', 'Table not found'));
+    await client.query('COMMIT');
     res.json({ success: true, data: mapTable(result.rows[0], []) });
   } catch (error) {
+    await client.query('ROLLBACK');
     next(error);
+  } finally {
+    client.release();
   }
 });
 
@@ -167,29 +198,49 @@ router.post('/:id/orders', validate(orderSchema), async (req, res, next) => {
 });
 
 router.put('/:id/orders/:orderId', validate(quantitySchema), async (req, res, next) => {
+  const client = await pool.connect();
   try {
-    const result = await query(
+    await client.query('BEGIN');
+    await client.query(
+      'SELECT id FROM cafe_tables WHERE id = $1 FOR UPDATE',
+      [req.params.id],
+    );
+    const result = await client.query(
       `UPDATE table_orders SET quantity = $3, updated_at = NOW()
        WHERE table_id = $1 AND id = $2 RETURNING *`,
       [req.params.id, req.params.orderId, req.body.quantity],
     );
-    if (!result.rows.length) return next(httpError(404, 'ORDER_NOT_FOUND', 'Order not found'));
+    if (!result.rows.length) throw httpError(404, 'ORDER_NOT_FOUND', 'Order not found');
+    await client.query('COMMIT');
     res.json({ success: true, data: mapOrder(result.rows[0]) });
   } catch (error) {
+    await client.query('ROLLBACK');
     next(error);
+  } finally {
+    client.release();
   }
 });
 
 router.delete('/:id/orders/:orderId', async (req, res, next) => {
+  const client = await pool.connect();
   try {
-    const result = await query(
+    await client.query('BEGIN');
+    await client.query(
+      'SELECT id FROM cafe_tables WHERE id = $1 FOR UPDATE',
+      [req.params.id],
+    );
+    const result = await client.query(
       'DELETE FROM table_orders WHERE table_id = $1 AND id = $2 RETURNING id',
       [req.params.id, req.params.orderId],
     );
-    if (!result.rows.length) return next(httpError(404, 'ORDER_NOT_FOUND', 'Order not found'));
+    if (!result.rows.length) throw httpError(404, 'ORDER_NOT_FOUND', 'Order not found');
+    await client.query('COMMIT');
     res.json({ success: true, data: { id: req.params.orderId } });
   } catch (error) {
+    await client.query('ROLLBACK');
     next(error);
+  } finally {
+    client.release();
   }
 });
 
