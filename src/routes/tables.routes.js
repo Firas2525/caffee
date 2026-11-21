@@ -297,6 +297,7 @@ function mapBill(row, items) {
     openedAt: row.opened_at,
     closedAt: row.closed_at,
     paymentMethod: row.payment_method,
+    createdByName: row.created_by_name,
     items: items.map(mapOrder),
   };
 }
