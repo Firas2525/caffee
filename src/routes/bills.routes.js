@@ -12,13 +12,14 @@ const billsQuerySchema = z.object({
 
 router.get('/', validate(billsQuerySchema, 'query'), async (req, res, next) => {
   try {
+    const requestedDate = req.validatedQuery?.date;
     let bills;
-    if (typeof req.query.date === 'string') {
+    if (typeof requestedDate === 'string') {
       bills = await query(
         `SELECT * FROM bills
          WHERE (closed_at AT TIME ZONE $1)::date = $2::date
          ORDER BY closed_at DESC`,
-        [env.appTimezone, req.query.date],
+        [env.appTimezone, requestedDate],
       );
     } else {
       bills = await query('SELECT * FROM bills ORDER BY closed_at DESC');

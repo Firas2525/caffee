@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
+import { z } from 'zod';
 import { app } from '../src/app.js';
+import { validate } from '../src/middleware/validate.js';
 
 const server = app.listen(0);
 let baseUrl;
@@ -33,4 +35,23 @@ test('unknown paths return a structured 404 response', async () => {
     success: false,
     error: { code: 'NOT_FOUND', message: 'Route not found' },
   });
+});
+
+test('query validation works with Express 5 read-only query getters', () => {
+  const schema = z.object({
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  });
+  const req = Object.create(null);
+  Object.defineProperty(req, 'query', {
+    enumerable: true,
+    get: () => ({ date: '2026-11-21' }),
+  });
+  let nextCalled = false;
+
+  validate(schema, 'query')(req, {}, () => {
+    nextCalled = true;
+  });
+
+  assert.equal(nextCalled, true);
+  assert.equal(req.validatedQuery.date, '2026-11-21');
 });

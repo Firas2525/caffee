@@ -11,6 +11,7 @@ const reportQuerySchema = z.object({
 
 router.get('/daily', validate(reportQuerySchema, 'query'), async (req, res, next) => {
   try {
+    const requestedDate = req.validatedQuery?.date;
     const result = await query(
       `SELECT
          COUNT(*)::int AS bills_count,
@@ -20,12 +21,12 @@ router.get('/daily', validate(reportQuerySchema, 'query'), async (req, res, next
          COALESCE(MAX(total), 0)::float AS largest_bill
        FROM bills
        WHERE (closed_at AT TIME ZONE $1)::date = $2::date`,
-      [env.appTimezone, req.query.date],
+      [env.appTimezone, requestedDate],
     );
     res.json({
       success: true,
       data: {
-        date: req.query.date,
+        date: requestedDate,
         timezone: env.appTimezone,
         ...result.rows[0],
       },

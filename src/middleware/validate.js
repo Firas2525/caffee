@@ -11,7 +11,13 @@ export function validate(schema, source = 'body') {
         },
       });
     }
-    req[source] = result.data;
+    if (source === 'body') {
+      req.body = result.data;
+    } else if (source === 'query') {
+      req.validatedQuery = result.data;
+    } else {
+      req[source] = result.data;
+    }
     next();
   };
 }
