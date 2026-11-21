@@ -5,7 +5,6 @@ import bcrypt from 'bcryptjs';
 import { pool } from '../config/database.js';
 import { env } from '../config/env.js';
 import { newId } from '../utils/id.js';
-import { seedMenu } from './defaultData.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -16,6 +15,22 @@ export async function initializeDatabase() {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    await client.query(
+      `DELETE FROM items
+       WHERE id LIKE 'item_hot_%'
+          OR id LIKE 'item_cold_%'
+          OR id LIKE 'item_shisha_%'
+          OR id LIKE 'item_dessert_%'`,
+    );
+    await client.query(
+      `DELETE FROM categories
+       WHERE id IN ('cat_hot', 'cat_cold', 'cat_shisha', 'cat_desserts')`,
+    );
+    await client.query(
+      `DELETE FROM cafe_tables
+       WHERE id ~ '^table_[1-9][0-9]*$'`,
+    );
+
     const userCount = await client.query('SELECT COUNT(*)::int AS count FROM users');
     if (userCount.rows[0].count === 0) {
       if (!env.adminUsername || env.adminPassword.length < 12) {
@@ -37,25 +52,6 @@ export async function initializeDatabase() {
       console.log('Initial administrator account created');
     }
 
-    const categoryCount = await client.query('SELECT COUNT(*)::int AS count FROM categories');
-    if (categoryCount.rows[0].count === 0) {
-      await seedMenu(client);
-    }
-
-    const tableCount = await client.query('SELECT COUNT(*)::int AS count FROM cafe_tables');
-    if (tableCount.rows[0].count === 0) {
-      for (let number = 1; number <= 12; number += 1) {
-        const name = number === 1
-          ? 'طاولة VIP 1'
-          : number === 2
-            ? 'طاولة VIP 2'
-            : `طاولة ${number}`;
-        await client.query(
-          'INSERT INTO cafe_tables (id, table_number, table_name) VALUES ($1, $2, $3)',
-          [`table_${number}`, number, name],
-        );
-      }
-    }
     await client.query('COMMIT');
   } catch (error) {
     await client.query('ROLLBACK');
