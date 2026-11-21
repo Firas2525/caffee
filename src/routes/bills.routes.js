@@ -23,13 +23,19 @@ router.get('/', validate(billsQuerySchema, 'query'), async (req, res, next) => {
     } else {
       bills = await query('SELECT * FROM bills ORDER BY closed_at DESC');
     }
-    const billIds = bills.rows.map((bill) => bill.id);
-    const items = billIds.length
-      ? await query('SELECT * FROM bill_items WHERE bill_id = ANY($1::text[])', [billIds])
+    const billIds = new Set(bills.rows.map((bill) => bill.id));
+    const items = billIds.size
+      ? await query(`
+          SELECT bill_items.*
+          FROM bill_items
+          INNER JOIN bills ON bills.id = bill_items.bill_id
+          ORDER BY bill_items.bill_id
+        `)
       : { rows: [] };
 
     const itemsByBill = new Map();
     for (const item of items.rows) {
+      if (!billIds.has(item.bill_id)) continue;
       const list = itemsByBill.get(item.bill_id) ?? [];
       list.push(mapItem(item));
       itemsByBill.set(item.bill_id, list);

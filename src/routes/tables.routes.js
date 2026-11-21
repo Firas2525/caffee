@@ -34,10 +34,11 @@ router.get('/', async (req, res, next) => {
   try {
     const tables = await query('SELECT * FROM cafe_tables ORDER BY table_number');
     const orders = await query(`
-      SELECT * FROM table_orders
-      WHERE table_id = ANY($1::text[])
-      ORDER BY created_at
-    `, [tables.rows.map((row) => row.id)]);
+      SELECT table_orders.*
+      FROM table_orders
+      INNER JOIN cafe_tables ON cafe_tables.id = table_orders.table_id
+      ORDER BY table_orders.created_at
+    `);
 
     const ordersByTable = new Map();
     for (const order of orders.rows) {
